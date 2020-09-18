@@ -17,6 +17,7 @@ parser = ArgumentParser()
 parser.add_argument('--config', type=str, help='Config file path')
 parser.add_argument('--path', type=str, help='Save path')
 parser.add_argument('--gpus', type=str, help='Gpus used')
+parser.add_argument('--eval', type=bool, help='Whether only do test')
 
 # add model specific args
 # parser = LitModel.add_model_specific_args(parser)
@@ -33,9 +34,12 @@ config = parse_config(args.config)
 criterion = get_loss(config['criterion'])
 model = CelebAModel(criterion=criterion,
                     config=config,
+                    batch_size=config['batch_size'],
                     **config['model'])
 trainer = get_trainer(gpus=args.gpus,
                       path=args.path,
                       config['trainer'])
-trainer.fit(model)
-
+if args.eval:
+  trainer.test(model)
+else:
+  trainer.fit(model)

@@ -1,13 +1,8 @@
-
-import ArgumentParser
-
 import torch
 import torchvision.models as models
-
 from pytorch_lightning.metrics import functional as FM
 
 from utils import *
-
 
 _depth_model_map = {
   18 : models.resnet18,
@@ -20,6 +15,7 @@ class CelebAModel(LightningModule):
 
   def __init__(self, depth,
                criterion,
+               batch_size,
                config,
                num_classes=40,
                pretrained=True):
@@ -30,9 +26,11 @@ class CelebAModel(LightningModule):
     self.adaptive_pool = nn.AdaptiveAvgPool2d((1, 1))
     backbone_out_features = 512 if depth < 50 else 2048
     self.fc = nn.Linear(backbone_out_features, num_classes, bias=True)
+
     self.num_classes = num_classes
     self.config = config
-
+    self.optimizer_config = config['optimizer']
+    self.scheduler_config = config['scheduler']
     self.criterion = criterion
 
   def forward(self, image):
@@ -58,8 +56,16 @@ class CelebAModel(LightningModule):
     return result
 
   def test_step(self, batch, batch_idx):
-    result = self.validation_step(batch, batch_idx)
-    result.rename_keys({'val_acc': 'test_acc', 'val_loss': 'test_loss'})
+    x, _ = batch
+    y_hat = self(x)
+    loss = self.criterion(y_hat, y)
+    acc = FM.accuracy(y_hat, y)
+    result = pl.EvalResult(checkpoint_on=loss)
+
+    # Write to output file
+
+    # result = self.validation_step(batch, batch_idx)
+    # result.rename_keys({'val_acc': 'test_acc', 'val_loss': 'test_loss'})
     return result
 
   def configure_optimizers(self):
@@ -75,10 +81,13 @@ class CelebAModel(LightningModule):
     self.test_dataset = get_dataset(name='test', **config['test_dataset'])
 
   def train_dataloader(self):
-    return DataLoader(self.train_dataset, batch_size=self.hparams.batch_size)
+    return DataLoader(self.train_dataset, shuffle=True,
+                      batch_size=self.hparams.batch_size)
 
   def test_dataloader(self):
-    return DataLoader(self.test_dataset, batch_size=self.hparams.batch_size)
+    return DataLoader(self.test_dataset, shuffle=False,
+                      batch_size=self.hparams.batch_size)
 
   def valid_dataloader(self):
-    return DataLoader(self.val_dataset, batch_size=self.hparams.batch_size)
+    return DataLoader(self.val_dataset, shuffle=False,
+                      batch_size=self.hparams.batch_size)

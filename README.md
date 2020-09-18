@@ -4,5 +4,4 @@
 **Required packages**
 
 * pytorch-lighting
-
-
+* pytorch
