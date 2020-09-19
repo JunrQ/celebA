@@ -43,7 +43,7 @@ class CelebAModel(pl.LightningModule):
     self.criterion = _re_cast_criterion
     self.num_workers = min(8, multiprocessing.cpu_count() // 4)
     self.path = path
-    self.save_result_filename = os.path.join(self.path, predictions.txt)
+    self.save_result_filename = os.path.join(self.path, 'predictions.txt')
     if os.path.isfile(self.save_result_filename):
       os.remove(self.save_result_filename)
     self.save_result_file = open(self.save_result_filename, 'a')
@@ -62,8 +62,10 @@ class CelebAModel(pl.LightningModule):
     image, target, _ = batch
     y_hat = self(image)
     loss = self.criterion(y_hat, target)
+    acc = FM.accuracy(y_hat, target)
     result = pl.TrainResult(loss)
-    return pl.TrainResult(loss)
+    result.log_dict({'acc' : acc, 'loss' : loss})
+    return result
 
   def validation_step(self, batch, batch_idx):
     x, y, _ = batch
@@ -77,19 +79,18 @@ class CelebAModel(pl.LightningModule):
   def test_step(self, batch, batch_idx):
     # Some part copied frm validation_step
     x, y, filename = batch
-    import pdb; pdb.set_trace()
     y_hat = self(x)
 
     # Save result
     for i in range(y.shape[0]):
-      self.save_result_file.write("%s %s" % (
+      self.save_result_file.write("%s %s\n" % (
           filename[i],
-          ' '.join([str(1 if x > 0.5 else -1) for x in list(y_hat[i, ...].cpu().numpy())]))
+          ' '.join([str(1 if x > 0.5 else -1) for x in list(y_hat[i, ...].cpu().numpy())])))
 
     loss = self.criterion(y_hat, y)
     acc = FM.accuracy(y_hat, y)
     result = pl.EvalResult(checkpoint_on=loss)
-    result.log_dict({'val_acc': acc, 'val_loss': loss})
+    result.log_dict({'test_acc': acc, 'test_loss': loss})
     return result
 
   def configure_optimizers(self):

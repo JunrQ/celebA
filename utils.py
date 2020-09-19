@@ -1,4 +1,5 @@
 import os
+import PIL
 
 import torch
 import torch.nn as nn
@@ -11,7 +12,7 @@ class CustomCelebA(CelebA):
   """
   Rewrite `__gettiem__` since we need filename.
   """
-  def __getitem__(self, index: int) -> Tuple[Any, Any]:
+  def __getitem__(self, index: int):
     X = PIL.Image.open(os.path.join(self.root, self.base_folder,
                                     "img_align_celeba", self.filename[index]))
     target: Any = []
