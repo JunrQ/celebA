@@ -28,7 +28,7 @@ seed_everything(1234) # reproducibility
 
 
 config = parse_config(args.config)
-
+gpus = [int(x) for x in gpus.strip().split(',')]
 
 
 criterion = get_loss(config['criterion'])
@@ -36,7 +36,7 @@ model = CelebAModel(criterion=criterion,
                     config=config,
                     batch_size=config['batch_size'],
                     **config['model'])
-trainer = get_trainer(gpus=args.gpus,
+trainer = get_trainer(gpus=gpus,
                       path=args.path,
                       config['trainer'])
 if args.eval:
