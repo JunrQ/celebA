@@ -113,10 +113,10 @@ class CelebAModel(pl.LightningModule):
   def test_dataloader(self):
     return DataLoader(self.test_dataset, shuffle=False,
                       batch_size=self.config['batch_size'],
-                      num_workers=min(2, self.num_workers // 2))
+                      num_workers=min(4, self.num_workers // 2))
 
   def val_dataloader(self):
     return DataLoader(self.val_dataset, shuffle=False,
                       batch_size=self.config['batch_size'],
-                      num_workers=min(2, self.num_workers // 2))
+                      num_workers=min(4, self.num_workers // 2))
 
