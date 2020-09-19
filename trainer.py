@@ -26,5 +26,4 @@ def get_trainer(gpus, path, config):
                  early_stop_callback=early_stop,
                  gpus=gpus,
                  default_root_dir=path,
-                 # resume_from_checkpoint=path,
                  **config)

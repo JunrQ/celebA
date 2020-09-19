@@ -7,10 +7,44 @@ import torchvision.transforms as transforms
 import torch.optim as optim
 
 
+class CustomCelebA(CelebA):
+  """
+  Rewrite `__gettiem__` since we need filename.
+  """
+  def __getitem__(self, index: int) -> Tuple[Any, Any]:
+    X = PIL.Image.open(os.path.join(self.root, self.base_folder,
+                                    "img_align_celeba", self.filename[index]))
+    target: Any = []
+    for t in self.target_type:
+      if t == "attr":
+        target.append(self.attr[index, :])
+      elif t == "identity":
+        target.append(self.identity[index, 0])
+      elif t == "bbox":
+        target.append(self.bbox[index, :])
+      elif t == "landmarks":
+        target.append(self.landmarks_align[index, :])
+      else:
+        # TODO: refactor with utils.verify_str_arg
+        raise ValueError("Target type \"{}\" is not recognized.".format(t))
+
+    if self.transform is not None:
+      X = self.transform(X)
+
+    if target:
+      target = tuple(target) if len(target) > 1 else target[0]
+
+      if self.target_transform is not None:
+        target = self.target_transform(target)
+    else:
+      target = None
+    return X, target, self.filename[index]
+
+
 def get_dataset(path, transform, name='train', target_type='attr'):
   transform = parse_transform(transform)
-  return CelebA(root=path, split=name, target_type=target_type,
-                transform=transform, download=True)
+  return CustomCelebA(root=path, split=name, target_type=target_type,
+                      transform=transform, download=True)
 
 
 def get_optimizer(config, parameters):

@@ -23,6 +23,7 @@ class CelebAModel(pl.LightningModule):
                criterion,
                batch_size,
                config,
+               path,
                num_classes=40,
                pretrained=True):
     super(CelebAModel, self).__init__()
@@ -41,6 +42,12 @@ class CelebAModel(pl.LightningModule):
       return criterion(x.float(), y.float(), *args, **kwargs)
     self.criterion = _re_cast_criterion
     self.num_workers = min(8, multiprocessing.cpu_count() // 4)
+    self.path = path
+    self.save_result_filename = os.path.join(self.path, predictions.txt)
+    if os.path.isfile(self.save_result_filename):
+      os.remove(self.save_result_filename)
+    self.save_result_file = open(self.save_result_filename, 'a')
+
 
   def forward(self, image):
     out = self.backbone(image)
@@ -52,14 +59,14 @@ class CelebAModel(pl.LightningModule):
     return out
 
   def training_step(self, batch, batch_idx):
-    image, target = batch
+    image, target, _ = batch
     y_hat = self(image)
     loss = self.criterion(y_hat, target)
     result = pl.TrainResult(loss)
     return pl.TrainResult(loss)
 
   def validation_step(self, batch, batch_idx):
-    x, y = batch
+    x, y, _ = batch
     y_hat = self(x)
     loss = self.criterion(y_hat, y)
     acc = FM.accuracy(y_hat, y)
@@ -68,16 +75,21 @@ class CelebAModel(pl.LightningModule):
     return result
 
   def test_step(self, batch, batch_idx):
-    x, _ = batch
+    # Some part copied frm validation_step
+    x, y, filename = batch
+    import pdb; pdb.set_trace()
     y_hat = self(x)
+
+    # Save result
+    for i in range(y.shape[0]):
+      self.save_result_file.write("%s %s" % (
+          filename[i],
+          ' '.join([str(1 if x > 0.5 else -1) for x in list(y_hat[i, ...].cpu().numpy())]))
+
     loss = self.criterion(y_hat, y)
     acc = FM.accuracy(y_hat, y)
     result = pl.EvalResult(checkpoint_on=loss)
-
-    # Write to output file
-
-    # result = self.validation_step(batch, batch_idx)
-    # result.rename_keys({'val_acc': 'test_acc', 'val_loss': 'test_loss'})
+    result.log_dict({'val_acc': acc, 'val_loss': loss})
     return result
 
   def configure_optimizers(self):

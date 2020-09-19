@@ -21,10 +21,6 @@ parser.add_argument('--path', type=str, help='Save path')
 parser.add_argument('--gpus', type=str, help='Gpus used')
 parser.add_argument('--eval', type=bool, help='Whether only do test')
 
-# add model specific args
-# parser = LitModel.add_model_specific_args(parser)
-# parser = Trainer.add_argparse_args(parser)
-
 args = parser.parse_args()
 seed_everything(1234) # reproducibility
 
@@ -35,14 +31,10 @@ if not os.path.isdir(args.path):
   os.mkdir(args.path)
 
 
-# train_dataset = get_dataset(name='train', **config['train_dataset'])
-# val_dataset = get_dataset(name='valid', **config['valid_dataset'])
-# test_dataset = get_dataset(name='test', **config['test_dataset'])
-# import pdb; pdb.set_trace()
-
 criterion = get_loss(config['criterion'])
 model = CelebAModel(criterion=criterion,
                     config=config,
+                    path=args.path,
                     batch_size=config['batch_size'],
                     **config['model'])
 trainer = get_trainer(gpus=gpus,
