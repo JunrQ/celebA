@@ -1,6 +1,12 @@
+import sys
+import multiprocessing
+
 import torch
 import torchvision.models as models
+from torch.utils.data import DataLoader
+import torch.nn.functional as F
 from pytorch_lightning.metrics import functional as FM
+import pytorch_lightning as pl
 
 from utils import *
 
@@ -11,7 +17,7 @@ _depth_model_map = {
   101 : models.resnet101
 }
 
-class CelebAModel(LightningModule):
+class CelebAModel(pl.LightningModule):
 
   def __init__(self, depth,
                criterion,
@@ -31,18 +37,24 @@ class CelebAModel(LightningModule):
     self.config = config
     self.optimizer_config = config['optimizer']
     self.scheduler_config = config['scheduler']
-    self.criterion = criterion
+    def _re_cast_criterion(x, y, *args, **kwargs):
+      return criterion(x.float(), y.float(), *args, **kwargs)
+    self.criterion = _re_cast_criterion
+    self.num_workers = min(8, multiprocessing.cpu_count() // 4)
 
   def forward(self, image):
     out = self.backbone(image)
     out = self.adaptive_pool(out)
+    n, c, _, _ = out.shape
+    out = out.view((n, c))
     out = self.fc(out)
+    out = torch.sigmoid(out)
     return out
 
   def training_step(self, batch, batch_idx):
     image, target = batch
     y_hat = self(image)
-    loss = self.criterion(y_hat, y)
+    loss = self.criterion(y_hat, target)
     result = pl.TrainResult(loss)
     return pl.TrainResult(loss)
 
@@ -72,7 +84,7 @@ class CelebAModel(LightningModule):
     opt = get_optimizer(self.optimizer_config, self.parameters())
     sch = { 'scheduler' : get_scheduler(opt, self.scheduler_config),
             'interval' : 'step' }
-    return opt, sch
+    return [opt], [sch]
 
   def prepare_data(self):
     config = self.config
@@ -82,12 +94,16 @@ class CelebAModel(LightningModule):
 
   def train_dataloader(self):
     return DataLoader(self.train_dataset, shuffle=True,
-                      batch_size=self.hparams.batch_size)
+                      batch_size=self.config['batch_size'],
+                      num_workers=self.num_workers)
 
   def test_dataloader(self):
     return DataLoader(self.test_dataset, shuffle=False,
-                      batch_size=self.hparams.batch_size)
+                      batch_size=self.config['batch_size'],
+                      num_workers=min(2, self.num_workers // 2))
 
-  def valid_dataloader(self):
+  def val_dataloader(self):
     return DataLoader(self.val_dataset, shuffle=False,
-                      batch_size=self.hparams.batch_size)
+                      batch_size=self.config['batch_size'],
+                      num_workers=min(2, self.num_workers // 2))
+

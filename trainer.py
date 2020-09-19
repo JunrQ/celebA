@@ -1,3 +1,5 @@
+import os
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -20,9 +22,9 @@ def get_trainer(gpus, path, config):
     strict=False,
     verbose=False,
     mode='min')
-  return Trainer(checkpoint_callback=[checkpoint_callback,
-                                      early_stop],
-                 default_root_path=os.getcwd(),
+  return Trainer(checkpoint_callback=checkpoint_callback,
+                 early_stop_callback=early_stop,
                  gpus=gpus,
-                 resume_from_checkpoint=path,
+                 default_root_dir=path,
+                 # resume_from_checkpoint=path,
                  **config)

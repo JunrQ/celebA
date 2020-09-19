@@ -1,8 +1,10 @@
+import os
 
 import torch
 import torch.nn as nn
 from torchvision.datasets import CelebA
-
+import torchvision.transforms as transforms
+import torch.optim as optim
 
 
 def get_dataset(path, transform, name='train', target_type='attr'):
@@ -18,14 +20,16 @@ def get_optimizer(config, parameters):
 
 
 def get_scheduler(optimizer, config):
-  t = config.copy().pop('type')
-  return getattr(optim.lr_scheduler, t)(optimizer, config)
+  config= config.copy()
+  t = config.pop('type')
+  return getattr(optim.lr_scheduler, t)(optimizer, **config)
 
 
 def get_loss(config):
-  """Return a callable object.""""
-  t = config.copy().pop('type')
-  return getattr(nn, 't')(**config)
+  """Return a callable object."""
+  config = config.copy()
+  t = config.pop('type')
+  return getattr(nn, t)(**config)
 
 
 _CUSTOM_TRANSFORMS = {}

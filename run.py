@@ -6,6 +6,8 @@
 
 
 from argparse import ArgumentParser
+import os
+
 from pytorch_lightning import seed_everything
 
 from utils import *
@@ -28,8 +30,15 @@ seed_everything(1234) # reproducibility
 
 
 config = parse_config(args.config)
-gpus = [int(x) for x in gpus.strip().split(',')]
+gpus = [int(x) for x in args.gpus.strip().split(',')]
+if not os.path.isdir(args.path):
+  os.mkdir(args.path)
 
+
+# train_dataset = get_dataset(name='train', **config['train_dataset'])
+# val_dataset = get_dataset(name='valid', **config['valid_dataset'])
+# test_dataset = get_dataset(name='test', **config['test_dataset'])
+# import pdb; pdb.set_trace()
 
 criterion = get_loss(config['criterion'])
 model = CelebAModel(criterion=criterion,
@@ -38,7 +47,7 @@ model = CelebAModel(criterion=criterion,
                     **config['model'])
 trainer = get_trainer(gpus=gpus,
                       path=args.path,
-                      config['trainer'])
+                      config=config['trainer'])
 if args.eval:
   trainer.test(model)
 else:

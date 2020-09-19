@@ -5,3 +5,5 @@
 
 * pytorch-lighting
 * pytorch
+* pandas *required by dataset.CelebA*
+
