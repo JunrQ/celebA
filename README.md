@@ -7,3 +7,8 @@
 * pytorch
 * pandas *required by dataset.CelebA*
 
+## Results
+
+| version | Test Accuracy |
+|-----------|-------------|
+| v0.1.config | 0.9058 |
