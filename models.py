@@ -43,11 +43,10 @@ class CelebAModel(pl.LightningModule):
     self.criterion = _re_cast_criterion
     self.num_workers = min(8, multiprocessing.cpu_count() // 4)
     self.path = path
-    self.save_result_filename = os.path.join(self.path, predictions.txt)
+    self.save_result_filename = os.path.join(self.path, 'predictions.txt')
     if os.path.isfile(self.save_result_filename):
       os.remove(self.save_result_filename)
     self.save_result_file = open(self.save_result_filename, 'a')
-
 
   def forward(self, image):
     out = self.backbone(image)
@@ -62,14 +61,20 @@ class CelebAModel(pl.LightningModule):
     image, target, _ = batch
     y_hat = self(image)
     loss = self.criterion(y_hat, target)
+    acc = FM.accuracy((y_hat > 0.5).long(), target)
     result = pl.TrainResult(loss)
-    return pl.TrainResult(loss)
+    result.log_dict({'acc' : acc, 'loss' : loss}, on_epoch=True)
+    return result
+
+  # def training_epoch_end(self, outputs):
+  #   print("[Train] Acc: %.3f" % outputs['acc'].mean().cpu().item())
+  #   return outputs
 
   def validation_step(self, batch, batch_idx):
     x, y, _ = batch
     y_hat = self(x)
     loss = self.criterion(y_hat, y)
-    acc = FM.accuracy(y_hat, y)
+    acc = FM.accuracy((y_hat > 0.5).long(), y)
     result = pl.EvalResult(checkpoint_on=loss)
     result.log_dict({'val_acc': acc, 'val_loss': loss})
     return result
@@ -77,25 +82,24 @@ class CelebAModel(pl.LightningModule):
   def test_step(self, batch, batch_idx):
     # Some part copied frm validation_step
     x, y, filename = batch
-    import pdb; pdb.set_trace()
     y_hat = self(x)
 
     # Save result
     for i in range(y.shape[0]):
-      self.save_result_file.write("%s %s" % (
+      self.save_result_file.write("%s %s\n" % (
           filename[i],
-          ' '.join([str(1 if x > 0.5 else -1) for x in list(y_hat[i, ...].cpu().numpy())]))
+          ' '.join([str(1 if x > 0.5 else -1) for x in list(y_hat[i, ...].cpu().numpy())])))
 
     loss = self.criterion(y_hat, y)
-    acc = FM.accuracy(y_hat, y)
+    acc = FM.accuracy((y_hat > 0.5).long(), y)
     result = pl.EvalResult(checkpoint_on=loss)
-    result.log_dict({'val_acc': acc, 'val_loss': loss})
+    result.log_dict({'test_acc': acc, 'test_loss': loss})
     return result
 
   def configure_optimizers(self):
     opt = get_optimizer(self.optimizer_config, self.parameters())
     sch = { 'scheduler' : get_scheduler(opt, self.scheduler_config),
-            'interval' : 'step' }
+            'interval' : 'epoch' }
     return [opt], [sch]
 
   def prepare_data(self):
@@ -112,10 +116,10 @@ class CelebAModel(pl.LightningModule):
   def test_dataloader(self):
     return DataLoader(self.test_dataset, shuffle=False,
                       batch_size=self.config['batch_size'],
-                      num_workers=min(2, self.num_workers // 2))
+                      num_workers=min(4, self.num_workers // 2))
 
   def val_dataloader(self):
     return DataLoader(self.val_dataset, shuffle=False,
                       batch_size=self.config['batch_size'],
-                      num_workers=min(2, self.num_workers // 2))
+                      num_workers=min(4, self.num_workers // 2))
 

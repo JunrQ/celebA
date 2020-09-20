@@ -23,6 +23,7 @@ parser.add_argument('--eval', type=bool, help='Whether only do test')
 
 args = parser.parse_args()
 seed_everything(1234) # reproducibility
+debug = False
 
 
 config = parse_config(args.config)
@@ -39,8 +40,9 @@ model = CelebAModel(criterion=criterion,
                     **config['model'])
 trainer = get_trainer(gpus=gpus,
                       path=args.path,
+                      debug=debug,
                       config=config['trainer'])
-if args.eval:
-  trainer.test(model)
-else:
+if not args.eval:
   trainer.fit(model)
+trainer.test(model)
+
