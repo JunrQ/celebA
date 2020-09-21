@@ -18,7 +18,6 @@ _depth_model_map = {
 }
 
 class CelebAModel(pl.LightningModule):
-
   def __init__(self, depth,
                criterion,
                batch_size,
@@ -63,12 +62,8 @@ class CelebAModel(pl.LightningModule):
     loss = self.criterion(y_hat, target)
     acc = FM.accuracy((y_hat > 0.5).long(), target)
     result = pl.TrainResult(loss)
-    result.log_dict({'acc' : acc, 'loss' : loss}, on_epoch=True)
+    result.log_dict({'acc' : acc, 'loss' : loss})
     return result
-
-  # def training_epoch_end(self, outputs):
-  #   print("[Train] Acc: %.3f" % outputs['acc'].mean().cpu().item())
-  #   return outputs
 
   def validation_step(self, batch, batch_idx):
     x, y, _ = batch
@@ -80,11 +75,9 @@ class CelebAModel(pl.LightningModule):
     return result
 
   def test_step(self, batch, batch_idx):
-    # Some part copied frm validation_step
     x, y, filename = batch
     y_hat = self(x)
 
-    # Save result
     for i in range(y.shape[0]):
       self.save_result_file.write("%s %s\n" % (
           filename[i],

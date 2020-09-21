@@ -1,5 +1,6 @@
 import os
 import PIL
+import re
 
 import torch
 import torch.nn as nn
@@ -138,3 +139,22 @@ def parse_transform(config):
       res.append(getattr(transforms, trans[0])(*trans[1][0], **trans[1][1]))
   return getattr(transforms, t)(res)
 
+
+def get_latest_ckpt(path):
+  pat = re.compile("epoch=(\d+)")
+  ps = os.listdir(path)
+  ps = [os.path.basename(p) for p in ps if p.endswith('ckpt')]
+  if len(ps) == 0:
+    return None
+  ps.sort(key=lambda a: int(pat.search(a).groups()[0]))
+  return os.path.join(path, ps[-1])
+
+
+def get_min_loss_ckpt(path):
+  pat = re.compile("val_loss=(\d+\.\d+)")
+  ps = os.listdir(path)
+  ps = [os.path.basename(p) for p in ps if p.endswith('ckpt')]
+  if len(ps) == 0:
+    return None
+  ps.sort(key=lambda a: float(pat.search(a).groups()[0]), reverse=True)
+  return os.path.join(path, ps[-1])
