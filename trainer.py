@@ -25,7 +25,7 @@ def get_trainer(gpus, path, config, debug=False):
     verbose=False,
     mode='min')
   
-  resume_mode = config.get('resume_mode', 'latest')
+  resume_mode = config.pop('resume_mode', 'latest')
   if resume_mode == 'latest':
     resume_func = get_latest_ckpt
   elif resume_mode == 'min_loss':

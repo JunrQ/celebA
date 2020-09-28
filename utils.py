@@ -1,12 +1,15 @@
 import os
 import PIL
 import re
+import numpy as np
 
 import torch
 import torch.nn as nn
 from torchvision.datasets import CelebA
 import torchvision.transforms as transforms
 import torch.optim as optim
+import torch.nn.functional as F
+from torch.autograd import Variable
 
 
 class CustomCelebA(CelebA):
@@ -61,11 +64,34 @@ def get_scheduler(optimizer, config):
   return getattr(optim.lr_scheduler, t)(optimizer, **config)
 
 
+class BinaryFocalLoss(nn.Module):
+  """BinaryFocalLoss class.
+
+  For binary focal loss.
+  """
+  def __init__(self, gamma=0):
+    super(BinaryFocalLoss, self).__init__()
+    self.gamma = gamma
+
+  def forward(self, prob, target):
+    """
+    prob : [batch_size, num_classes]
+    target : [batch_size, num_classes]
+    """
+    pt = (1 - target) * prob + target * (1 - prob)
+    logpt = log(pt)
+    loss = -1 * (1 - pt) ** self.gamma * logpt
+    return loss.mean()
+
+
 def get_loss(config):
   """Return a callable object."""
   config = config.copy()
   t = config.pop('type')
-  return getattr(nn, t)(**config)
+  if t == 'BinaryFocalLoss':
+    return BinaryFocalLoss(**config)
+  else
+    return getattr(nn, t)(**config)
 
 
 _CUSTOM_TRANSFORMS = {}
