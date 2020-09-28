@@ -79,7 +79,7 @@ class BinaryFocalLoss(nn.Module):
     target : [batch_size, num_classes]
     """
     pt = (1 - target) * prob + target * (1 - prob)
-    logpt = log(pt)
+    logpt = torch.log(pt)
     loss = -1 * (1 - pt) ** self.gamma * logpt
     return loss.mean()
 
@@ -90,7 +90,7 @@ def get_loss(config):
   t = config.pop('type')
   if t == 'BinaryFocalLoss':
     return BinaryFocalLoss(**config)
-  else
+  else:
     return getattr(nn, t)(**config)
 
 
