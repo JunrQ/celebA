@@ -5,7 +5,9 @@
 
 * pytorch-lighting
 * pytorch
-* pandas *required by dataset.CelebA*
+* pandas = 1.1.1 *required by dataset.CelebA*
+* requests = 2.24.0
+* tqdm = 4.49.0
 
 ## Results
 
