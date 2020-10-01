@@ -10,13 +10,14 @@ class CelebAModel(Trainer):
   """TODO"""
 
 
-def get_trainer(gpus, path, config, debug=False):
+def get_trainer(gpus, path, config, resume_mode='latest', debug=False):
   checkpoint_callback = ModelCheckpoint(
     filepath="%s/{epoch}-{val_loss:.2f}" % path,
     save_top_k=True,
+    save_last=True,
     verbose=True,
     monitor='val_acc',
-    mode='min',
+    mode='max',
     prefix='')
   early_stop = EarlyStopping(
     monitor='val_loss',
@@ -25,7 +26,6 @@ def get_trainer(gpus, path, config, debug=False):
     verbose=False,
     mode='min')
   
-  resume_mode = config.pop('resume_mode', 'latest')
   if resume_mode == 'latest':
     resume_func = get_latest_ckpt
   elif resume_mode == 'min_loss':

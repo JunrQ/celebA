@@ -41,6 +41,7 @@ model = CelebAModel(criterion=criterion,
 trainer = get_trainer(gpus=gpus,
                       path=args.path,
                       debug=debug,
+                      resume_mode='min_loss' if args.eval else 'latest',
                       config=config['trainer'])
 if not args.eval:
   trainer.fit(model)

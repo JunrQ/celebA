@@ -78,7 +78,7 @@ class BinaryFocalLoss(nn.Module):
     prob : [batch_size, num_classes]
     target : [batch_size, num_classes]
     """
-    pt = (1 - target) * prob + target * (1 - prob)
+    pt = target * prob + (1 - target) * (1 - prob)
     logpt = torch.log(pt)
     loss = -1 * (1 - pt) ** self.gamma * logpt
     return loss.mean()
@@ -167,12 +167,22 @@ def parse_transform(config):
 
 
 def get_latest_ckpt(path):
+  latest = os.path.join(path, 'last.ckpt')
+  if os.path.isfile(latest):
+    return latest
+
   pat = re.compile("epoch=(\d+)")
   ps = os.listdir(path)
   ps = [os.path.basename(p) for p in ps if p.endswith('ckpt')]
   if len(ps) == 0:
     return None
-  ps.sort(key=lambda a: int(pat.search(a).groups()[0]))
+  def k(a):
+    s = pat.search(a)
+    if s is None:
+      return -1
+    else:
+      return int(s.groups()[0])
+  ps.sort(key=lambda a: k(a))
   return os.path.join(path, ps[-1])
 
 
@@ -182,5 +192,12 @@ def get_min_loss_ckpt(path):
   ps = [os.path.basename(p) for p in ps if p.endswith('ckpt')]
   if len(ps) == 0:
     return None
-  ps.sort(key=lambda a: float(pat.search(a).groups()[0]), reverse=True)
+  def k(a):
+    s = pat.search(a)
+    if s is None:
+      return -1
+    else:
+      return float(s.groups()[0])
+  ps.sort(key=lambda a: k(a), reverse=True)
   return os.path.join(path, ps[-1])
+

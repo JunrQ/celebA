@@ -14,3 +14,7 @@
 | version | Test Accuracy |
 |-----------|-------------|
 | v0.1.config | 0.9058 |
+| v0.6.config | 0.9064 |
+| v0.7.config | 0.9100 |
+| v0.7.1.config | 0.9115 |
+
