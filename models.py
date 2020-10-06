@@ -9,6 +9,7 @@ from pytorch_lightning.metrics import functional as FM
 import pytorch_lightning as pl
 
 from utils import *
+from nets import get_models
 
 _depth_model_map = {
   18 : models.resnet18,
@@ -23,11 +24,16 @@ class CelebAModel(pl.LightningModule):
                batch_size,
                config,
                path,
+               model_type='resnet',
                num_classes=40,
                pretrained=True):
     super(CelebAModel, self).__init__()
-    resnet = _depth_model_map[depth](pretrained=pretrained)
-    modules = list(resnet.children())[:-2]
+    if model_type == 'resnet':
+      _models = _depth_model_map[depth](pretrained=pretrained)
+    else:
+      _models = get_models(model_type, depth)
+    modules = list(_models.children())[:-2]
+
     self.backbone = nn.Sequential(*modules)
     self.adaptive_pool = nn.AdaptiveAvgPool2d((1, 1))
     backbone_out_features = 512 if depth < 50 else 2048
