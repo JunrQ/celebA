@@ -1,5 +1,7 @@
 import sys
 import multiprocessing
+import numpy as np
+from collections import OrderedDict
 
 import torch
 import torchvision.models as models
@@ -17,6 +19,15 @@ _depth_model_map = {
   50 : models.resnet50,
   101 : models.resnet101
 }
+
+_attrs_str = '5_o_Clock_Shadow Arched_Eyebrows Attractive Bags_Under_Eyes Bald ' + \
+             'Bangs Big_Lips Big_Nose Black_Hair Blond_Hair Blurry Brown_Hair ' + \
+             'Bushy_Eyebrows Chubby Double_Chin Eyeglasses Goatee Gray_Hair ' + \
+             'Heavy_Makeup High_Cheekbones Male Mouth_Slightly_Open Mustache ' + \
+             'Narrow_Eyes No_Beard Oval_Face Pale_Skin Pointy_Nose Receding_Hairline ' + \
+             'Rosy_Cheeks Sideburns Smiling Straight_Hair Wavy_Hair Wearing_Earrings ' + \
+             'Wearing_Hat Wearing_Lipstick Wearing_Necklace Wearing_Necktie Young'
+_attrs_str = _attrs_str.split()
 
 class CelebAModel(pl.LightningModule):
   def __init__(self, depth,
@@ -49,9 +60,13 @@ class CelebAModel(pl.LightningModule):
     self.num_workers = min(8, multiprocessing.cpu_count() // 4)
     self.path = path
     self.save_result_filename = os.path.join(self.path, 'predictions.txt')
+    self.save_attrs_acc_filename = os.path.join(self.path, 'attrs_acc.txt')
     if os.path.isfile(self.save_result_filename):
       os.remove(self.save_result_filename)
     self.save_result_file = open(self.save_result_filename, 'a')
+    self.save_attrs_acc_file = open(self.save_attrs_acc_filename, 'w')
+    self._test_total = 0
+    self._attrs_map = OrderedDict(zip(_attrs_str, [0 for _ in range(len(_attrs_str))]))
 
   def forward(self, image):
     out = self.backbone(image)
@@ -89,11 +104,27 @@ class CelebAModel(pl.LightningModule):
           filename[i],
           ' '.join([str(1 if x > 0.5 else -1) for x in list(y_hat[i, ...].cpu().numpy())])))
 
+    pred_np = (y_hat > 0.5).long().cpu().detach().numpy()
+    y_np = y.cpu().detach().numpy()
+    true_count_np = (pred_np == y_np).sum(axis=0)
+    for i, k in enumerate(self._attrs_map.keys()):
+      self._attrs_map[k] += true_count_np[i]
+    self._test_total += pred_np.shape[0]
+
     loss = self.criterion(y_hat, y)
     acc = FM.accuracy((y_hat > 0.5).long(), y)
     result = pl.EvalResult(checkpoint_on=loss)
     result.log_dict({'test_acc': acc, 'test_loss': loss})
     return result
+
+  def test_epoch_end(self, outputs):
+    t = self._test_total
+    for k, v in self._attrs_map.items():
+      self.save_attrs_acc_file.write("%s %.4f\n" % (k, 1.0 * v / t))
+    result = pl.EvalResult()
+    result.log('test_acc', outputs['test_acc'].mean())
+    return result
+    # return outputs[0]
 
   def configure_optimizers(self):
     opt = get_optimizer(self.optimizer_config, self.parameters())
