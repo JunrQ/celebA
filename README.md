@@ -1,6 +1,5 @@
 # AI6126 Project 1: CelebA Facial Attribute Recognition Challenge
 
-
 **Required packages**
 
 * pytorch-lighting
@@ -9,7 +8,34 @@
 * requests = 2.24.0
 * tqdm = 4.49.0
 
-## Results
+## File descriptions
+
+* `models.py` : Define the model architeture and training, evaluation operation.
+* `trainer.py` : Define trainer.
+* `nets.py` : Some backbones.
+* `run.py` : Script used for running the training and evaluation.
+* `utils.py` : Define some functions.
+
+## Run
+
+In order to train or test a model, using the following script
+
+```shell
+# Specify the configuration used
+config=v1.0.1.config
+
+# Specify gpus
+gpus=0
+
+# Run
+python -u run.py \
+  --config config/${config} \
+  --path log/${config} \
+  --gpus ${gpus} \
+  > log/${config}.log 2>&1
+```
+
+## Experiments Results
 
 | version | Test Accuracy |
 |-----------|-------------|
