@@ -44,5 +44,6 @@ python -u run.py \
 | v0.7.config | 0.9100 |
 | v0.7.1.config | 0.9115 |
 | v0.7.2.config | 0.9172 |
+| v0.7.3.config | 0.9173 |
 | v1.0.0.config | 0.9043 |
 
