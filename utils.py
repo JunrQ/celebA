@@ -2,11 +2,14 @@ import os
 import PIL
 import re
 import numpy as np
+import glob
+import cv2
 
 import torch
 import torch.nn as nn
 from torchvision.datasets import CelebA
 import torchvision.transforms as transforms
+from torch.utils.data import Dataset
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.autograd import Variable
@@ -46,10 +49,31 @@ class CustomCelebA(CelebA):
     return X, target, self.filename[index]
 
 
+class TestCelebA(Dataset):
+  def __init__(self, path, transform=None):
+    self.images_path = glob.glob(os.path.join(path, "*/*.jpg"))
+    self.images = [cv2.imread(p) for p in self.images_path]
+    self.transform = transform
+
+  def __len__(self):
+    return len(self.images_path)
+
+  def __getitem__(self, idx):
+    img = self.images[idx]
+    path = self.images_path[idx]
+    img = Image.fromarray(img)
+    if self.transform is not None:
+      img = self.transform(img)
+    return img, [0] * 40, os.path.basename(path)
+
+
 def get_dataset(path, transform, name='train', target_type='attr'):
   transform = parse_transform(transform)
-  return CustomCelebA(root=path, split=name, target_type=target_type,
-                      transform=transform, download=True)
+  if name == 'test':
+    return TestCelebA(path=path, transform=transform)
+  else:
+    return CustomCelebA(root=path, split=name, target_type=target_type,
+                        transform=transform, download=True)
 
 
 def get_optimizer(config, parameters):
