@@ -96,35 +96,36 @@ class CelebAModel(pl.LightningModule):
     return result
 
   def test_step(self, batch, batch_idx):
-    x, y, filename = batch
+    x, filename = batch
     y_hat = self(x)
 
-    for i in range(y.shape[0]):
+    for i in range(y_hat.shape[0]):
       self.save_result_file.write("%s %s\n" % (
           filename[i],
           ' '.join([str(1 if x > 0.5 else -1) for x in list(y_hat[i, ...].cpu().numpy())])))
 
-    pred_np = (y_hat > 0.5).long().cpu().detach().numpy()
-    y_np = y.cpu().detach().numpy()
-    true_count_np = (pred_np == y_np).sum(axis=0)
-    for i, k in enumerate(self._attrs_map.keys()):
-      self._attrs_map[k] += true_count_np[i]
-    self._test_total += pred_np.shape[0]
+    # pred_np = (y_hat > 0.5).long().cpu().detach().numpy()
+    # y_np = y.cpu().detach().numpy()
+    # true_count_np = (pred_np == y_np).sum(axis=0)
+    # for i, k in enumerate(self._attrs_map.keys()):
+    #   self._attrs_map[k] += true_count_np[i]
+    # self._test_total += pred_np.shape[0]
 
-    loss = self.criterion(y_hat, y)
-    acc = FM.accuracy((y_hat > 0.5).long(), y)
-    result = pl.EvalResult(checkpoint_on=loss)
-    result.log_dict({'test_acc': acc, 'test_loss': loss})
-    return result
-
-  def test_epoch_end(self, outputs):
-    t = self._test_total
-    for k, v in self._attrs_map.items():
-      self.save_attrs_acc_file.write("%s %.4f\n" % (k, 1.0 * v / t))
+    # loss = self.criterion(y_hat, y)
+    # acc = FM.accuracy((y_hat > 0.5).long(), y)
+    # result = pl.EvalResult(checkpoint_on=loss)
+    # result.log_dict({'test_acc': acc, 'test_loss': loss})
     result = pl.EvalResult()
-    result.log('test_acc', outputs['test_acc'].mean())
     return result
-    # return outputs[0]
+
+  # def test_epoch_end(self, outputs):
+  #   t = self._test_total
+  #   for k, v in self._attrs_map.items():
+  #     self.save_attrs_acc_file.write("%s %.4f\n" % (k, 1.0 * v / t))
+  #   result = pl.EvalResult()
+  #   result.log('test_acc', outputs['test_acc'].mean())
+  #   return result
+  #   # return outputs[0]
 
   def configure_optimizers(self):
     opt = get_optimizer(self.optimizer_config, self.parameters())

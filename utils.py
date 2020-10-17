@@ -1,5 +1,6 @@
 import os
 import PIL
+from PIL import Image
 import re
 import numpy as np
 import glob
@@ -64,7 +65,7 @@ class TestCelebA(Dataset):
     img = Image.fromarray(img)
     if self.transform is not None:
       img = self.transform(img)
-    return img, [0] * 40, os.path.basename(path)
+    return img, os.path.basename(path)
 
 
 def get_dataset(path, transform, name='train', target_type='attr'):
